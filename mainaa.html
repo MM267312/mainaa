@@ -1,0 +1,1349 @@
+<!DOCTYPE html>
+<html lang="th" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบบันทึกการใช้ปุ๋ยยาและคำนวณต้นทุนการเกษตร | AgriCost Pro</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            700: '#075985',
+                        },
+                        agri: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Prompt', 'Sarabun', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Google Fonts: Prompt -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body { font-family: 'Prompt', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="h-full text-slate-800 flex flex-col antialiased">
+
+    <!-- Header Navigation -->
+    <header class="bg-slate-900 text-white shadow-lg sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Brand Title -->
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-agri-500 to-brand-500 flex items-center justify-center shadow-md">
+                        <i class="fa-solid font-bold text-xl text-white">🌾</i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg leading-tight tracking-wide">AgriCost Pro</h1>
+                        <p class="text-xs text-slate-400">ระบบบันทึกการใช้ปุ๋ยยา & คำนวณต้นทุนการเกษตร</p>
+                    </div>
+                </div>
+
+                <!-- Desktop Nav & User Profile -->
+                <div class="flex items-center gap-4">
+                    <nav id="mainNav" class="hidden md:flex space-x-2">
+                        <button onclick="switchTab('tab-entry')" id="nav-tab-entry" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 bg-brand-600 text-white shadow-sm">
+                            <i class="fa-solid fa-pen-to-square"></i> บันทึกการใช้งาน & คำนวณ
+                        </button>
+                        <button onclick="switchTab('tab-reports')" id="nav-tab-reports" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 text-slate-300 hover:text-white hover:bg-slate-800">
+                            <i class="fa-solid fa-chart-pie"></i> ประวัติ & สรุปรายงาน
+                        </button>
+                        <button onclick="switchTab('tab-inventory')" id="nav-tab-inventory" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 text-slate-300 hover:text-white hover:bg-slate-800">
+                            <i class="fa-solid fa-boxes-stacked"></i> คลังปุ๋ยและสารเคมี
+                        </button>
+                    </nav>
+
+                    <!-- User Profile Component -->
+                    <div id="userProfileArea" class="hidden flex items-center gap-3 border-l border-slate-800 pl-4">
+                        <img id="userAvatar" src="" class="w-8 h-8 rounded-full border border-agri-500 bg-slate-800" alt="User Avatar">
+                        <div class="hidden sm:block text-left">
+                            <p id="userName" class="text-xs font-semibold leading-none text-slate-200"></p>
+                            <p id="userEmail" class="text-[10px] text-slate-400 leading-tight mt-0.5"></p>
+                        </div>
+                        <button onclick="handleSignOut()" title="ออกจากระบบ" class="text-slate-400 hover:text-red-400 text-sm ml-1 transition-colors">
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Navigation Tab Bar -->
+        <div id="mobileNav" class="hidden md:hidden border-t border-slate-800 bg-slate-900 px-2 py-2 flex justify-around">
+            <button onclick="switchTab('tab-entry')" id="mob-tab-entry" class="mob-tab-btn flex-1 py-2 text-center text-xs font-medium rounded-lg text-brand-500">
+                <i class="fa-solid fa-pen-to-square text-base block mb-0.5"></i> บันทึก
+            </button>
+            <button onclick="switchTab('tab-reports')" id="mob-tab-reports" class="mob-tab-btn flex-1 py-2 text-center text-xs font-medium rounded-lg text-slate-400">
+                <i class="fa-solid fa-chart-pie text-base block mb-0.5"></i> ประวัติ
+            </button>
+            <button onclick="switchTab('tab-inventory')" id="mob-tab-inventory" class="mob-tab-btn flex-1 py-2 text-center text-xs font-medium rounded-lg text-slate-400">
+                <i class="fa-solid fa-boxes-stacked text-base block mb-0.5"></i> คลังสินค้า
+            </button>
+        </div>
+    </header>
+
+    <!-- SECTION: Login / Register View -->
+    <div id="loginScreen" class="flex-1 flex items-center justify-center p-4 my-8">
+        <div class="bg-white rounded-3xl shadow-xl border border-slate-200 p-8 max-w-md w-full space-y-6">
+            <div class="text-center space-y-2">
+                <div class="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto shadow-inner text-3xl">
+                    🌾
+                </div>
+                <h2 class="text-2xl font-bold text-slate-800">AgriCost Pro</h2>
+                <p class="text-xs text-slate-500">ระบบบันทึกการใช้ปุ๋ยยา & คำนวณต้นทุนการเกษตร</p>
+            </div>
+
+            <!-- Tabs Toggle -->
+            <div class="flex rounded-xl bg-slate-100 p-1 text-xs font-semibold">
+                <button id="tabBtnLogin" onclick="switchAuthTab('login')" class="flex-1 py-2 rounded-lg bg-white shadow text-brand-600 transition-all">เข้าสู่ระบบ</button>
+                <button id="tabBtnRegister" onclick="switchAuthTab('register')" class="flex-1 py-2 rounded-lg text-slate-500 hover:text-slate-700 transition-all">สมัครสมาชิก</button>
+            </div>
+
+            <!-- Form: Login -->
+            <form id="loginForm" onsubmit="handleLocalLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">ชื่อผู้ใช้งาน หรือ อีเมล</label>
+                    <input type="text" id="loginUsername" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">รหัสผ่าน</label>
+                    <input type="password" id="loginPassword" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                </div>
+                <button type="submit" class="w-full py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-semibold transition-all shadow-md">
+                    เข้าสู่ระบบ
+                </button>
+            </form>
+
+            <!-- Form: Register -->
+            <form id="registerForm" onsubmit="handleLocalRegister(event)" class="space-y-4 hidden">
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">ชื่อ - นามสกุล / ชื่อแสดงในระบบ <span class="text-red-500">*</span></label>
+                    <input type="text" id="regDisplayName" required placeholder="เช่น สมชาย ใจดี" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">ชื่อผู้ใช้งาน หรือ อีเมล <span class="text-red-500">*</span></label>
+                    <input type="text" id="regUsername" required placeholder="เช่น somchai123" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">รหัสผ่าน <span class="text-red-500">*</span></label>
+                    <input type="password" id="regPassword" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">ยืนยันรหัสผ่าน <span class="text-red-500">*</span></label>
+                    <input type="password" id="regConfirmPassword" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                </div>
+                <button type="submit" class="w-full py-2.5 bg-agri-600 hover:bg-agri-700 text-white rounded-xl text-xs font-semibold transition-all shadow-md">
+                    สมัครสมาชิกใหม่
+                </button>
+            </form>
+
+            <div class="text-[11px] text-center text-slate-400 border-t pt-4">
+                🔒 ข้อมูลของคุณจะถูกบันทึกแยกบัญชีอย่างเป็นส่วนตัวในเครื่องของคุณ
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <main id="appMainContent" class="hidden flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+
+        <!-- TAB 1: บันทึกการใช้งาน -->
+        <section id="tab-entry" class="tab-content space-y-6">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-clipboard-list text-brand-500"></i>
+                        แบบฟอร์มบันทึกกิจกรรมและการพ่นสารเคมี (ใบ PD)
+                    </h2>
+                    <p class="text-sm text-slate-500">เลือกปุ๋ยยาได้หลายรายการพร้อมกัน และระบบจะคำนวณต้นทุนรวม สรุปต่อไร่ และต่อถังพ่นทันที</p>
+                </div>
+            </div>
+
+            <form id="jobForm" onsubmit="handleSaveJob(event)" class="space-y-6">
+                <!-- Section 1: ข้อมูล แปลง/กิจกรรม -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6 space-y-4">
+                    <h3 class="text-md font-semibold text-slate-700 border-b pb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-map-location-dot text-brand-600"></i> ข้อมูลแปลงและกิจกรรม
+                    </h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">วันที่ทำงาน <span class="text-red-500">*</span></label>
+                            <input type="date" id="entryDate" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">ชื่อแปลง / โครงการ <span class="text-red-500">*</span></label>
+                            <input type="text" id="plotName" required placeholder="เช่น แปลง A1-A6, แปลง Zone C" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">พื้นที่ (ไร่) <span class="text-red-500">*</span></label>
+                            <input type="number" id="areaRai" min="0.1" step="0.1" value="5" oninput="calculateRealtimeCost()" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm font-semibold text-brand-600">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">กิจกรรม <span class="text-red-500">*</span></label>
+                            <select id="activityType" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm">
+                                <option value="พ่นสารเคมี(คลุมวัชพืช)">พ่นสารเคมี (คลุมวัชพืช)</option>
+                                <option value="พ่นสารเคมี(กำจัดวัชพืช)">พ่นสารเคมี (กำจัดวัชพืช)</option>
+                                <option value="พ่นสารเคมี(กำจัดแมลง+โรค)">พ่นสารเคมี (กำจัดแมลง + โรค)</option>
+                                <option value="ใส่ปุ๋ยรองพื้น">ใส่ปุ๋ยรองพื้น</option>
+                                <option value="ใส่ปุ๋ยแต่งหน้า/ทำรุ่น">ใส่ปุ๋ยแต่งหน้า / ทำรุ่น</option>
+                                <option value="คลุกเมล็ดพันธุ์">คลุกเมล็ดพันธุ์</option>
+                                <option value="กิจกรรมอื่นๆ">กิจกรรมอื่นๆ</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">จำนวนถังพ่น (ถัง 20 ลิตร)</label>
+                            <input type="number" id="sprayTanks" min="1" step="1" value="15" oninput="calculateRealtimeCost()" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm">
+                            <span class="text-[11px] text-slate-400">*คำนวณจากประมาณ 3 ถัง/ไร่ (ปรับเปลี่ยนได้)</span>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">ค่าแรงงานรวม (บาท)</label>
+                            <input type="number" id="laborCost" min="0" value="0" step="10" oninput="calculateRealtimeCost()" placeholder="0" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">หมายเหตุ / Job Card / แรงงาน</label>
+                            <input type="text" id="jobNotes" placeholder="เช่น จ้างเหมาพ่น 600 บ./ไร่, 4 แรง 8 ชั่วโมง" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: รายการปุ๋ย/สารเคมี -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6 space-y-4">
+                    <div class="flex items-center justify-between border-b pb-3">
+                        <h3 class="text-md font-semibold text-slate-700 flex items-center gap-2">
+                            <i class="fa-solid fa-flask text-agri-600"></i> รายการปุ๋ยและสารเคมีที่ผสม/ใช้
+                        </h3>
+                        <button type="button" onclick="addChemicalRow()" class="px-3 py-1.5 bg-agri-50 text-agri-700 hover:bg-agri-100 border border-agri-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors">
+                            <i class="fa-solid fa-plus"></i> เพิ่มรายการ
+                        </button>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-500 text-xs uppercase border-b border-slate-200">
+                                    <th class="p-2 min-w-[200px]">สารเคมี/ปุ๋ย</th>
+                                    <th class="p-2 w-32">ประเภท</th>
+                                    <th class="p-2 w-44">อัตราผสมมาตรฐาน</th>
+                                    <th class="p-2 w-32">ปริมาณใช้รวม</th>
+                                    <th class="p-2 w-24">หน่วย</th>
+                                    <th class="p-2 w-32 text-right">ต้นทุน (บาท)</th>
+                                    <th class="p-2 w-12 text-center">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="chemicalRowsContainer" class="divide-y divide-slate-100 text-sm">
+                                <!-- Dynamic Chemical Rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Section 3: สรุปต้นทุน Real-time -->
+                <div class="bg-slate-900 text-white rounded-2xl p-6 shadow-xl space-y-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-800">
+                        <div class="pt-2 sm:pt-0">
+                            <span class="text-xs text-slate-400 block mb-1">รวมต้นทุนสารเคมี/ปุ๋ย</span>
+                            <div id="calcChemTotal" class="text-2xl font-bold text-agri-400">0.00 <span class="text-sm font-normal text-slate-300">บาท</span></div>
+                        </div>
+                        <div class="pt-2 sm:pt-0 sm:pl-4">
+                            <span class="text-xs text-slate-400 block mb-1">รวมค่าแรงงาน</span>
+                            <div id="calcLaborTotal" class="text-2xl font-bold text-slate-200">0.00 <span class="text-sm font-normal text-slate-300">บาท</span></div>
+                        </div>
+                        <div class="pt-2 sm:pt-0 sm:pl-4">
+                            <span class="text-xs text-slate-400 block mb-1">ต้นทุนรวมสุทธิ (Grand Total)</span>
+                            <div id="calcGrandTotal" class="text-3xl font-extrabold text-amber-400">0.00 <span class="text-sm font-normal text-slate-300">บาท</span></div>
+                        </div>
+                        <div class="pt-2 sm:pt-0 sm:pl-4 bg-slate-800/60 p-3 rounded-xl border border-slate-700/50">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-xs text-slate-300">เฉลี่ยต้นทุน/ไร่:</span>
+                                <span id="calcCostPerRai" class="text-base font-bold text-brand-400">0.00 ฿/ไร่</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs text-slate-300">เฉลี่ยต้นทุน/ถังพ่น:</span>
+                                <span id="calcCostPerTank" class="text-base font-bold text-brand-400">0.00 ฿/ถัง</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row justify-end gap-3 pt-2 border-t border-slate-800">
+                        <button type="button" onclick="resetForm()" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm rounded-xl transition-colors font-medium">
+                            <i class="fa-solid fa-rotate-right mr-1"></i> ล้างฟอร์ม
+                        </button>
+                        <button type="submit" class="px-6 py-2.5 bg-gradient-to-r from-agri-500 to-agri-600 hover:from-agri-600 hover:to-agri-700 text-white font-semibold text-sm rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-floppy-disk"></i> บันทึกข้อมูลลงประวัติ
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </section>
+
+        <!-- TAB 2: ประวัติและสรุปรายงาน -->
+        <section id="tab-reports" class="tab-content space-y-6 hidden">
+            <!-- Top Dashboard Stats -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                    <div class="p-3 bg-brand-50 text-brand-600 rounded-xl"><i class="fa-solid fa-sack-dollar text-2xl"></i></div>
+                    <div>
+                        <p class="text-xs text-slate-500 font-medium">ต้นทุนสะสมทั้งหมด</p>
+                        <h3 id="statTotalSpend" class="text-xl font-bold text-slate-800">0.00 ฿</h3>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                    <div class="p-3 bg-agri-50 text-agri-600 rounded-xl"><i class="fa-solid fa-vector-square text-2xl"></i></div>
+                    <div>
+                        <p class="text-xs text-slate-500 font-medium">พื้นที่ทำงานรวม</p>
+                        <h3 id="statTotalArea" class="text-xl font-bold text-slate-800">0 ไร่</h3>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                    <div class="p-3 bg-amber-50 text-amber-600 rounded-xl"><i class="fa-solid fa-chart-line text-2xl"></i></div>
+                    <div>
+                        <p class="text-xs text-slate-500 font-medium">ต้นทุนเฉลี่ยต่อไร่</p>
+                        <h3 id="statAvgPerRai" class="text-xl font-bold text-slate-800">0.00 ฿</h3>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                    <div class="p-3 bg-purple-50 text-purple-600 rounded-xl"><i class="fa-solid fa-list-check text-2xl"></i></div>
+                    <div>
+                        <p class="text-xs text-slate-500 font-medium">จำนวนกิจกรรมทั้งหมด</p>
+                        <h3 id="statJobCount" class="text-xl font-bold text-slate-800">0 รายการ</h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                    <h3 class="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-pie text-brand-500"></i> สัดส่วนต้นทุนตามประเภทสารเคมี/ปุ๋ย
+                    </h3>
+                    <div class="h-64 relative">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                    <h3 class="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-column text-agri-500"></i> ต้นทุนรวมแยกตามแปลง/โครงการ
+                    </h3>
+                    <div class="h-64 relative">
+                        <canvas id="plotChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Logs Table -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-800">ประวัติบันทึกการทำงาน</h3>
+                        <p class="text-xs text-slate-500">เรียกดู ประมวลผล และส่งออกข้อมูลย้อนหลัง</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="exportToCSV()" class="px-3.5 py-2 bg-agri-600 hover:bg-agri-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm">
+                            <i class="fa-solid fa-file-excel"></i> Export CSV ทั้งหมด
+                        </button>
+                        <button onclick="resetMockupJobsData()" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors">
+                            <i class="fa-solid fa-rotate"></i> โหลดข้อมูลตัวอย่าง
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                    <input type="text" id="historySearch" oninput="renderHistoryTable()" placeholder="🔍 ค้นหาตามแปลง, กิจกรรม..." class="px-3 py-2 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    <select id="plotFilter" onchange="renderHistoryTable()" class="px-3 py-2 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                        <option value="">ทุกแปลง/โครงการ</option>
+                    </select>
+                    <select id="activityFilter" onchange="renderHistoryTable()" class="px-3 py-2 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                        <option value="">ทุกประเภทกิจกรรม</option>
+                    </select>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 text-slate-500 text-xs uppercase border-b border-slate-200">
+                                <th class="p-3">วันที่ล่าสุด</th>
+                                <th class="p-3">แปลง / โครงการ</th>
+                                <th class="p-3">กิจกรรม</th>
+                                <th class="p-3">สารเคมี/ปุ๋ย ที่ใช้</th>
+                                <th class="p-3 text-right">พื้นที่ (ไร่)</th>
+                                <th class="p-3 text-right">ต้นทุนรวม (บาท)</th>
+                                <th class="p-3 text-right">บาท/ไร่</th>
+                                <th class="p-3 text-right">บาท/ถัง</th>
+                                <th class="p-3 text-center">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody" class="divide-y divide-slate-100 text-xs text-slate-700"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: คลังปุ๋ยและสารเคมี -->
+        <section id="tab-inventory" class="tab-content space-y-6 hidden">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-boxes-stacked text-agri-600"></i> คลังปุ๋ยและสารเคมีเกษตร
+                    </h2>
+                    <p class="text-sm text-slate-500">จัดการข้อมูลสารเคมี ราคาต่อหน่วย และอัตราการใช้มาตรฐาน</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="openAddChemModal()" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm">
+                        <i class="fa-solid fa-plus"></i> เพิ่มรายการใหม่
+                    </button>
+                    <button onclick="resetInventoryDefaults()" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors">
+                        <i class="fa-solid fa-arrow-rotate-left"></i> คืนค่าเริ่มต้น
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <input type="text" id="inventorySearch" oninput="renderInventoryTable()" placeholder="🔍 ค้นหาชื่อสารเคมี..." class="px-3 py-2 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    <select id="inventoryCategoryFilter" onchange="renderInventoryTable()" class="px-3 py-2 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                        <option value="">ทุกหมวดหมู่</option>
+                        <option value="วัชพืช">วัชพืช</option>
+                        <option value="โรค">โรค</option>
+                        <option value="แมลง">แมลง</option>
+                        <option value="ปุ๋ย">ปุ๋ย</option>
+                        <option value="สารคลุกเมล็ด">สารคลุกเมล็ด</option>
+                        <option value="ธาตุอาหารเสริม">ธาตุอาหารเสริม</option>
+                    </select>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 text-slate-500 text-xs uppercase border-b border-slate-200">
+                                <th class="p-3">#</th>
+                                <th class="p-3">ชื่อรายการ</th>
+                                <th class="p-3">ชื่อสามัญ</th>
+                                <th class="p-3">หมวดหมู่</th>
+                                <th class="p-3 text-right">ขนาดบรรจุ</th>
+                                <th class="p-3 text-right">ราคา/บรรจุภัณฑ์</th>
+                                <th class="p-3 text-right">ราคาต่อหน่วย</th>
+                                <th class="p-3 text-center">อัตรา/20L</th>
+                                <th class="p-3 text-center">อัตรา/ไร่</th>
+                                <th class="p-3 text-center">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventoryTableBody" class="divide-y divide-slate-100 text-xs text-slate-700"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modals & Toasts -->
+    <div id="jobDetailModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 space-y-4 transform transition-all max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b pb-3">
+                <div>
+                    <h3 id="detailModalTitle" class="font-bold text-slate-800 text-base sm:text-lg">รายละเอียดการทำงาน</h3>
+                    <p id="detailModalSub" class="text-xs text-slate-500"></p>
+                </div>
+                <button onclick="closeJobDetailModal()" class="text-slate-400 hover:text-slate-600 text-lg p-1"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="detailModalContent" class="space-y-4"></div>
+            <div class="flex justify-end pt-3 border-t">
+                <button type="button" onclick="closeJobDetailModal()" class="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors">ปิดหน้าต่าง</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="chemModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-4 transform transition-all">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 id="modalTitle" class="font-bold text-slate-800 text-base">เพิ่มรายการสารเคมีใหม่</h3>
+                <button onclick="closeChemModal()" class="text-slate-400 hover:text-slate-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="chemModalForm" onsubmit="handleSaveChemModal(event)" class="space-y-3">
+                <input type="hidden" id="modalChemId">
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">ชื่อรายการสารเคมี/ปุ๋ย <span class="text-red-500">*</span></label>
+                    <input type="text" id="modalChemName" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">ชื่อสามัญ</label>
+                        <input type="text" id="modalChemCommon" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">หมวดหมู่</label>
+                        <select id="modalChemCategory" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                            <option value="วัชพืช">วัชพืช</option>
+                            <option value="โรค">โรค</option>
+                            <option value="แมลง">แมลง</option>
+                            <option value="ปุ๋ย">ปุ๋ย</option>
+                            <option value="ปุ๋ยเกล็ด">ปุ๋ยเกล็ด</option>
+                            <option value="สารคลุกเมล็ด">สารคลุกเมล็ด</option>
+                            <option value="ธาตุอาหารเสริม">ธาตุอาหารเสริม</option>
+                            <option value="ปรับสภาพดิน">ปรับสภาพดิน</option>
+                            <option value="อุปกรณ์">อุปกรณ์</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">ปริมาณบรรจุ</label>
+                        <input type="number" id="modalChemPackSize" step="0.01" min="0" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">หน่วย</label>
+                        <input type="text" id="modalChemUnit" placeholder="g, cc, ml, kg" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">ราคาซื้อ (บาท)</label>
+                        <input type="number" id="modalChemPackPrice" step="0.01" min="0" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3 pt-2 border-t">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">อัตราแนะนำ / 20 ลิตร</label>
+                        <input type="text" id="modalChemRate20L" placeholder="เช่น 20 cc" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">อัตราแนะนำ / ไร่</label>
+                        <input type="text" id="modalChemRateRai" placeholder="เช่น 60 cc" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                </div>
+                <div class="flex justify-end gap-2 pt-3">
+                    <button type="button" onclick="closeChemModal()" class="px-4 py-2 bg-slate-100 text-slate-600 text-xs font-medium rounded-lg">ยกเลิก</button>
+                    <button type="submit" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium rounded-lg">บันทึกข้อมูล</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 space-y-2 pointer-events-none"></div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // Active User state
+        let currentUser = null;
+
+        // Init App On Load
+        document.addEventListener('DOMContentLoaded', () => {
+            checkSession();
+        });
+
+        // Auth Tabs Toggle
+        function switchAuthTab(mode) {
+            const loginForm = document.getElementById('loginForm');
+            const regForm = document.getElementById('registerForm');
+            const tabBtnLogin = document.getElementById('tabBtnLogin');
+            const tabBtnRegister = document.getElementById('tabBtnRegister');
+
+            if (mode === 'login') {
+                loginForm.classList.remove('hidden');
+                regForm.classList.add('hidden');
+                tabBtnLogin.className = 'flex-1 py-2 rounded-lg bg-white shadow text-brand-600 transition-all font-semibold';
+                tabBtnRegister.className = 'flex-1 py-2 rounded-lg text-slate-500 hover:text-slate-700 transition-all font-semibold';
+            } else {
+                loginForm.classList.add('hidden');
+                regForm.classList.remove('hidden');
+                tabBtnRegister.className = 'flex-1 py-2 rounded-lg bg-white shadow text-agri-600 transition-all font-semibold';
+                tabBtnLogin.className = 'flex-1 py-2 rounded-lg text-slate-500 hover:text-slate-700 transition-all font-semibold';
+            }
+        }
+
+        // Local Storage User Helpers
+        function getUsers() {
+            return JSON.parse(localStorage.getItem('agricost_users') || '[]');
+        }
+
+        function saveUsers(users) {
+            localStorage.setItem('agricost_users', JSON.stringify(users));
+        }
+
+        function checkSession() {
+            const session = JSON.parse(localStorage.getItem('agricost_session') || 'null');
+            if (session) {
+                loginUser(session);
+            } else {
+                logoutUI();
+            }
+        }
+
+        function loginUser(user) {
+            currentUser = user;
+            localStorage.setItem('agricost_session', JSON.stringify(user));
+
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('appMainContent').classList.remove('hidden');
+            document.getElementById('userProfileArea').classList.remove('hidden');
+            document.getElementById('mainNav').classList.remove('hidden');
+            document.getElementById('mobileNav').classList.remove('hidden');
+
+            document.getElementById('userAvatar').src = user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`;
+            document.getElementById('userName').textContent = user.displayName;
+            document.getElementById('userEmail').textContent = user.username;
+
+            loadChemicals();
+            loadJobs();
+            resetForm();
+            showToast(`ยินดีต้อนรับคุณ ${user.displayName}`, 'success');
+        }
+
+        function logoutUI() {
+            currentUser = null;
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('appMainContent').classList.add('hidden');
+            document.getElementById('userProfileArea').classList.add('hidden');
+            document.getElementById('mainNav').classList.add('hidden');
+            document.getElementById('mobileNav').classList.add('hidden');
+        }
+
+        function handleLocalLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value;
+
+            const users = getUsers();
+            const foundUser = users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
+
+            if (foundUser) {
+                loginUser(foundUser);
+            } else {
+                showToast('ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง', 'warning');
+            }
+        }
+
+        function handleLocalRegister(e) {
+            e.preventDefault();
+            const displayName = document.getElementById('regDisplayName').value.trim();
+            const username = document.getElementById('regUsername').value.trim();
+            const password = document.getElementById('regPassword').value;
+            const confirmPassword = document.getElementById('regConfirmPassword').value;
+
+            if (password !== confirmPassword) {
+                showToast('รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน', 'warning');
+                return;
+            }
+
+            const users = getUsers();
+            if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+                showToast('ชื่อผู้ใช้งานนี้มีอยู่ในระบบแล้ว', 'warning');
+                return;
+            }
+
+            const newUser = {
+                uid: 'usr_' + Date.now(),
+                username: username,
+                displayName: displayName,
+                password: password,
+                photoURL: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(username)}`
+            };
+
+            users.push(newUser);
+            saveUsers(users);
+            loginUser(newUser);
+            showToast('สมัครสมาชิกสำเร็จ!', 'success');
+        }
+
+        function handleSignOut() {
+            if (confirm('คุณต้องการออกจากระบบหรือไม่?')) {
+                localStorage.removeItem('agricost_session');
+                logoutUI();
+                showToast('ออกจากระบบเรียบร้อยแล้ว', 'info');
+            }
+        }
+
+        // Default Chemical Inventory Database
+        const DEFAULT_CHEMICALS = [
+            { id: 1, name: "เอเทร็ก", commonName: "atrazine", category: "วัชพืช", packSize: 900, unit: "g", packPrice: 210, rate20L: "100", unit20L: "g", rateRai: "300", unitRai: "g", pricePerUnit: 0.2333 },
+            { id: 2, name: "ฮาเนส", commonName: "acetochlor", category: "วัชพืช", packSize: 1000, unit: "cc", packPrice: 200, rate20L: "110", unit20L: "ml", rateRai: "330", unitRai: "ml", pricePerUnit: 0.2000 },
+            { id: 3, name: "คลีโอโปร", commonName: "ชุดคลีโอโปร", category: "วัชพืช", packSize: 1260, unit: "ชุด", packPrice: 1260, rate20L: "210", unit20L: "ชุด", rateRai: "210", unitRai: "ชุด", pricePerUnit: 1.0000 },
+            { id: 4, name: "15-15-15 กระต่าย", commonName: "ปุ๋ยรองพื้น", category: "ปุ๋ย", packSize: 50, unit: "kg", packPrice: 1025, rate20L: "50", unit20L: "kg", rateRai: "50", unitRai: "kg", pricePerUnit: 20.5000 },
+            { id: 5, name: "46-0-0 กระต่าย", commonName: "ปุ๋ยแต่งหน้า+ทำรุ่น", category: "ปุ๋ย", packSize: 50, unit: "kg", packPrice: 850, rate20L: "50", unit20L: "kg", rateRai: "50", unitRai: "kg", pricePerUnit: 17.0000 }
+        ];
+
+        const MOCKUP_JOBS = [
+            {
+                id: "JOB-1001",
+                date: new Date().toISOString().split('T')[0],
+                plotName: "แปลง A1",
+                areaRai: 5.0,
+                activityType: "พ่นสารเคมี(คลุมวัชพืช)",
+                sprayTanks: 15,
+                laborCost: 1000,
+                notes: "ตัวอย่างบันทึกแรกของบัญชีนี้",
+                items: [
+                    { chemId: 1, chemName: "เอเทร็ก", category: "วัชพืช", quantity: 1500, unit: "g", unitPrice: 0.2333, totalCost: 350.0 }
+                ],
+                chemTotal: 350.0,
+                grandTotal: 1350.0
+            }
+        ];
+
+        let chemicals = [];
+        let jobLogs = [];
+        let categoryChartInstance = null;
+        let plotChartInstance = null;
+
+        // Multi-user Key Helpers
+        function getUserKey(keyName) {
+            const uid = currentUser ? currentUser.uid : 'guest';
+            return `agri_${keyName}_${uid}`;
+        }
+
+        function loadChemicals() {
+            const key = getUserKey('chemicals');
+            const saved = localStorage.getItem(key);
+            if (saved) {
+                try { chemicals = JSON.parse(saved); } catch(e) { chemicals = [...DEFAULT_CHEMICALS]; }
+            } else {
+                chemicals = [...DEFAULT_CHEMICALS];
+                saveChemicals();
+            }
+        }
+
+        function saveChemicals() {
+            const key = getUserKey('chemicals');
+            localStorage.setItem(key, JSON.stringify(chemicals));
+        }
+
+        function loadJobs() {
+            const key = getUserKey('job_logs');
+            const saved = localStorage.getItem(key);
+            if (saved) {
+                try { jobLogs = JSON.parse(saved); } catch(e) { jobLogs = [...MOCKUP_JOBS]; }
+            } else {
+                jobLogs = [...MOCKUP_JOBS];
+                saveJobs();
+            }
+        }
+
+        function saveJobs() {
+            const key = getUserKey('job_logs');
+            localStorage.setItem(key, JSON.stringify(jobLogs));
+        }
+
+        function resetInventoryDefaults() {
+            if (confirm('คุณต้องการรีเซ็ตคลังปุ๋ยและสารเคมีกลับเป็นค่าเริ่มต้นใช่หรือไม่?')) {
+                chemicals = [...DEFAULT_CHEMICALS];
+                saveChemicals();
+                renderInventoryTable();
+                showToast('รีเซ็ตคลังสินค้าเรียบร้อยแล้ว', 'success');
+            }
+        }
+
+        function resetMockupJobsData() {
+            if (confirm('ต้องการโหลดข้อมูลตัวอย่างบันทึกการทำงานหรือไม่?')) {
+                jobLogs = [...MOCKUP_JOBS];
+                saveJobs();
+                renderHistoryTable();
+                showToast('โหลดข้อมูลตัวอย่างสำเร็จ', 'success');
+            }
+        }
+
+        // Tab Switching Logic
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(tabId).classList.remove('hidden');
+
+            const tabKeys = ['entry', 'reports', 'inventory'];
+            tabKeys.forEach(key => {
+                const navBtn = document.getElementById(`nav-tab-${key}`);
+                const mobBtn = document.getElementById(`mob-tab-${key}`);
+                
+                if (tabId === `tab-${key}`) {
+                    navBtn.className = 'tab-btn px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 bg-brand-600 text-white shadow-sm';
+                    mobBtn.className = 'mob-tab-btn flex-1 py-2 text-center text-xs font-medium rounded-lg text-brand-500';
+                } else {
+                    navBtn.className = 'tab-btn px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 text-slate-300 hover:text-white hover:bg-slate-800';
+                    mobBtn.className = 'mob-tab-btn flex-1 py-2 text-center text-xs font-medium rounded-lg text-slate-400';
+                }
+            });
+
+            if (tabId === 'tab-reports') {
+                renderHistoryTable();
+            } else if (tabId === 'tab-inventory') {
+                renderInventoryTable();
+            }
+        }
+
+        // Dynamic Rows & Form Logic
+        function addChemicalRow(selectedChemId = null, initialQty = null) {
+            const container = document.getElementById('chemicalRowsContainer');
+            const rowId = 'row-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+
+            let optionsHtml = '<option value="">-- เลือกสารเคมี/ปุ๋ย --</option>';
+            chemicals.forEach(c => {
+                optionsHtml += `<option value="${c.id}" ${selectedChemId == c.id ? 'selected' : ''}>${c.name} (${c.category}) - ${c.pricePerUnit.toFixed(2)} ฿/${c.unit}</option>`;
+            });
+
+            const tr = document.createElement('tr');
+            tr.id = rowId;
+            tr.className = "hover:bg-slate-50 transition-colors";
+            tr.innerHTML = `
+                <td class="p-2">
+                    <select onchange="handleChemSelectChange('${rowId}')" class="chem-select w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                        ${optionsHtml}
+                    </select>
+                </td>
+                <td class="p-2 text-xs font-medium text-slate-500 chem-category-cell">-</td>
+                <td class="p-2 text-xs text-slate-500 chem-rate-cell">-</td>
+                <td class="p-2">
+                    <input type="number" step="0.01" min="0" value="${initialQty !== null ? initialQty : ''}" oninput="calculateRealtimeCost()" placeholder="0.00" class="chem-qty w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs font-semibold text-right focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                </td>
+                <td class="p-2 text-xs font-medium text-slate-600 chem-unit-cell">หน่วย</td>
+                <td class="p-2 text-right font-bold text-slate-800 chem-total-cell">0.00</td>
+                <td class="p-2 text-center">
+                    <button type="button" onclick="removeChemicalRow('${rowId}')" class="text-slate-400 hover:text-red-500 transition-colors text-sm"><i class="fa-solid fa-trash-can"></i></button>
+                </td>
+            `;
+            container.appendChild(tr);
+
+            if (selectedChemId) handleChemSelectChange(rowId);
+        }
+
+        function removeChemicalRow(rowId) {
+            const container = document.getElementById('chemicalRowsContainer');
+            if (container.children.length <= 1) {
+                showToast('ต้องมีอย่างน้อย 1 รายการสารเคมี', 'warning');
+                return;
+            }
+            const row = document.getElementById(rowId);
+            if (row) row.remove();
+            calculateRealtimeCost();
+        }
+
+        function handleChemSelectChange(rowId) {
+            const row = document.getElementById(rowId);
+            const select = row.querySelector('.chem-select');
+            const chemId = parseInt(select.value);
+
+            const categoryCell = row.querySelector('.chem-category-cell');
+            const rateCell = row.querySelector('.chem-rate-cell');
+            const unitCell = row.querySelector('.chem-unit-cell');
+            const qtyInput = row.querySelector('.chem-qty');
+
+            if (!chemId) {
+                categoryCell.textContent = '-';
+                rateCell.textContent = '-';
+                unitCell.textContent = 'หน่วย';
+                calculateRealtimeCost();
+                return;
+            }
+
+            const item = chemicals.find(c => c.id === chemId);
+            if (item) {
+                categoryCell.innerHTML = `<span class="px-2 py-0.5 rounded-full text-[10px] bg-slate-100 font-semibold text-slate-600">${item.category}</span>`;
+                rateCell.textContent = `${item.rate20L} ${item.unit20L}/20L | ${item.rateRai} ${item.unitRai}/ไร่`;
+                unitCell.textContent = item.unit;
+
+                if (!qtyInput.value || qtyInput.value == 0) {
+                    const areaRai = parseFloat(document.getElementById('areaRai').value) || 1;
+                    const tanks = parseFloat(document.getElementById('sprayTanks').value) || 1;
+                    const numRate20L = parseFloat(item.rate20L);
+                    
+                    if (!isNaN(numRate20L) && numRate20L > 0) {
+                        qtyInput.value = numRate20L * tanks;
+                    } else {
+                        const numRateRai = parseFloat(item.rateRai);
+                        if (!isNaN(numRateRai) && numRateRai > 0) {
+                            qtyInput.value = numRateRai * areaRai;
+                        }
+                    }
+                }
+            }
+            calculateRealtimeCost();
+        }
+
+        function calculateRealtimeCost() {
+            const areaRai = parseFloat(document.getElementById('areaRai').value) || 0;
+            const sprayTanks = parseFloat(document.getElementById('sprayTanks').value) || 0;
+            const laborCost = parseFloat(document.getElementById('laborCost').value) || 0;
+
+            let totalChemCost = 0;
+            const rows = document.querySelectorAll('#chemicalRowsContainer tr');
+            rows.forEach(row => {
+                const select = row.querySelector('.chem-select');
+                const qtyInput = row.querySelector('.chem-qty');
+                const totalCell = row.querySelector('.chem-total-cell');
+
+                const chemId = parseInt(select.value);
+                const qty = parseFloat(qtyInput.value) || 0;
+
+                if (chemId && qty > 0) {
+                    const item = chemicals.find(c => c.id === chemId);
+                    if (item) {
+                        const lineCost = qty * item.pricePerUnit;
+                        totalChemCost += lineCost;
+                        totalCell.textContent = lineCost.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    }
+                } else {
+                    totalCell.textContent = '0.00';
+                }
+            });
+
+            const grandTotal = totalChemCost + laborCost;
+            const costPerRai = areaRai > 0 ? (grandTotal / areaRai) : 0;
+            const costPerTank = sprayTanks > 0 ? (grandTotal / sprayTanks) : 0;
+
+            document.getElementById('calcChemTotal').innerHTML = `${totalChemCost.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span class="text-sm font-normal text-slate-300">บาท</span>`;
+            document.getElementById('calcLaborTotal').innerHTML = `${laborCost.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span class="text-sm font-normal text-slate-300">บาท</span>`;
+            document.getElementById('calcGrandTotal').innerHTML = `${grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span class="text-sm font-normal text-slate-300">บาท</span>`;
+            
+            document.getElementById('calcCostPerRai').textContent = `${costPerRai.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿/ไร่`;
+            document.getElementById('calcCostPerTank').textContent = `${costPerTank.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿/ถัง`;
+        }
+
+        // Modified: รวมแปลงที่เป็นชื่อเดียวกัน และอัปเดตข้อมูลเข้าแปลงเดิม
+        function handleSaveJob(e) {
+            e.preventDefault();
+
+            const date = document.getElementById('entryDate').value;
+            const plotName = document.getElementById('plotName').value.trim();
+            const areaRai = parseFloat(document.getElementById('areaRai').value) || 0;
+            const activityType = document.getElementById('activityType').value;
+            const sprayTanks = parseFloat(document.getElementById('sprayTanks').value) || 0;
+            const laborCost = parseFloat(document.getElementById('laborCost').value) || 0;
+            const notes = document.getElementById('jobNotes').value.trim();
+
+            const items = [];
+            let chemTotal = 0;
+
+            const rows = document.querySelectorAll('#chemicalRowsContainer tr');
+            rows.forEach(row => {
+                const select = row.querySelector('.chem-select');
+                const qtyInput = row.querySelector('.chem-qty');
+
+                const chemId = parseInt(select.value);
+                const qty = parseFloat(qtyInput.value) || 0;
+
+                if (chemId && qty > 0) {
+                    const chem = chemicals.find(c => c.id === chemId);
+                    if (chem) {
+                        const lineCost = qty * chem.pricePerUnit;
+                        chemTotal += lineCost;
+                        items.push({
+                            chemId: chem.id,
+                            chemName: chem.name,
+                            category: chem.category,
+                            quantity: qty,
+                            unit: chem.unit,
+                            unitPrice: chem.pricePerUnit,
+                            totalCost: lineCost
+                        });
+                    }
+                }
+            });
+
+            if (items.length === 0 && laborCost === 0) {
+                showToast('กรุณาใส่รายการสารเคมีหรือค่าแรงงานอย่างน้อย 1 รายการ', 'warning');
+                return;
+            }
+
+            // ตรวจสอบว่ามีชื่อแปลงนี้อยู่แล้วหรือไม่
+            const existingJobIndex = jobLogs.findIndex(j => j.plotName.toLowerCase() === plotName.toLowerCase());
+
+            if (existingJobIndex !== -1) {
+                // อัปเดตข้อมูลรวมเข้ากับแปลงเดิม
+                const target = jobLogs[existingJobIndex];
+                target.date = date; // อัปเดตเป็นวันที่ล่าสุด
+                target.activityType = activityType;
+                target.areaRai += areaRai;
+                target.sprayTanks += sprayTanks;
+                target.laborCost += laborCost;
+                
+                if (notes) {
+                    target.notes = target.notes ? `${target.notes} | ${notes}` : notes;
+                }
+
+                // รวมรายการสารเคมี
+                items.forEach(newItem => {
+                    const existingItem = target.items.find(i => i.chemId === newItem.chemId);
+                    if (existingItem) {
+                        existingItem.quantity += newItem.quantity;
+                        existingItem.totalCost += newItem.totalCost;
+                    } else {
+                        target.items.push(newItem);
+                    }
+                });
+
+                target.chemTotal += chemTotal;
+                target.grandTotal += (chemTotal + laborCost);
+
+                saveJobs();
+                showToast(`อัปเดตข้อมูลเข้ากับ "${plotName}" สำเร็จ!`, 'success');
+            } else {
+                // สร้างรายการแปลงใหม่
+                const newJob = {
+                    id: 'JOB-' + Date.now().toString().slice(-6),
+                    date,
+                    plotName,
+                    areaRai,
+                    activityType,
+                    sprayTanks,
+                    laborCost,
+                    notes,
+                    items,
+                    chemTotal,
+                    grandTotal: chemTotal + laborCost
+                };
+
+                jobLogs.unshift(newJob);
+                saveJobs();
+                showToast('บันทึกกิจกรรมเรียบร้อยแล้ว!', 'success');
+            }
+
+            resetForm();
+            switchTab('tab-reports');
+        }
+
+        function resetForm() {
+            document.getElementById('jobForm').reset();
+            document.getElementById('entryDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('chemicalRowsContainer').innerHTML = '';
+            addChemicalRow();
+            calculateRealtimeCost();
+        }
+
+        // Reports & Tables Logic
+        function renderHistoryTable() {
+            const tbody = document.getElementById('historyTableBody');
+            const searchKw = document.getElementById('historySearch').value.toLowerCase();
+            const plotF = document.getElementById('plotFilter').value;
+            const actF = document.getElementById('activityFilter').value;
+
+            const plots = [...new Set(jobLogs.map(j => j.plotName))];
+            const activities = [...new Set(jobLogs.map(j => j.activityType))];
+
+            document.getElementById('plotFilter').innerHTML = '<option value="">ทุกแปลง/โครงการ</option>' + plots.map(p => `<option value="${p}" ${plotF === p ? 'selected' : ''}>${p}</option>`).join('');
+            document.getElementById('activityFilter').innerHTML = '<option value="">ทุกประเภทกิจกรรม</option>' + activities.map(a => `<option value="${a}" ${actF === a ? 'selected' : ''}>${a}</option>`).join('');
+
+            const filtered = jobLogs.filter(j => {
+                const matchSearch = j.plotName.toLowerCase().includes(searchKw) || 
+                                    j.activityType.toLowerCase().includes(searchKw) ||
+                                    j.items.some(i => i.chemName.toLowerCase().includes(searchKw));
+                const matchPlot = !plotF || j.plotName === plotF;
+                const matchAct = !actF || j.activityType === actF;
+                return matchSearch && matchPlot && matchAct;
+            });
+
+            let totalSpend = 0;
+            let totalArea = 0;
+            filtered.forEach(j => {
+                totalSpend += j.grandTotal;
+                totalArea += j.areaRai;
+            });
+
+            document.getElementById('statTotalSpend').textContent = totalSpend.toLocaleString('th-TH', { minimumFractionDigits: 2 }) + ' ฿';
+            document.getElementById('statTotalArea').textContent = totalArea.toLocaleString('th-TH', { maximumFractionDigits: 1 }) + ' ไร่';
+            document.getElementById('statAvgPerRai').textContent = (totalArea > 0 ? (totalSpend / totalArea) : 0).toLocaleString('th-TH', { minimumFractionDigits: 2 }) + ' ฿';
+            document.getElementById('statJobCount').textContent = filtered.length + ' รายการ';
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="p-6 text-center text-slate-400">ไม่พบข้อมูลประวัติบันทึกกิจกรรม</td></tr>`;
+            } else {
+                tbody.innerHTML = filtered.map(j => {
+                    const chemListText = j.items.map(i => `${i.chemName} (${i.quantity} ${i.unit})`).join(', ') || 'ไม่มีสารเคมี (ค่าแรงอย่างเดียว)';
+                    const perRai = j.areaRai > 0 ? (j.grandTotal / j.areaRai) : 0;
+                    const perTank = j.sprayTanks > 0 ? (j.grandTotal / j.sprayTanks) : 0;
+
+                    return `
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="p-3 font-semibold text-slate-800">${j.date}</td>
+                            <td class="p-3"><span class="px-2 py-1 rounded-md bg-brand-50 text-brand-700 font-semibold text-[11px]">${j.plotName}</span></td>
+                            <td class="p-3 font-medium">${j.activityType}</td>
+                            <td class="p-3 max-w-xs truncate text-slate-600 cursor-pointer hover:text-brand-600 hover:underline transition-colors" onclick="viewJobDetail('${j.id}')">
+                                ${chemListText}
+                            </td>
+                            <td class="p-3 text-right">${j.areaRai}</td>
+                            <td class="p-3 text-right font-bold text-amber-600">${j.grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
+                            <td class="p-3 text-right text-slate-600">${perRai.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
+                            <td class="p-3 text-right text-slate-600">${perTank.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
+                            <td class="p-3 text-center space-x-2">
+                                <button onclick="viewJobDetail('${j.id}')" class="text-slate-400 hover:text-brand-600" title="ดูรายละเอียด"><i class="fa-solid fa-eye"></i></button>
+                                <button onclick="exportSingleJobToCSV('${j.id}')" class="text-slate-400 hover:text-agri-600" title="Export Excel เฉพาะแปลงนี้"><i class="fa-solid fa-file-excel"></i></button>
+                                <button onclick="deleteJob('${j.id}')" class="text-slate-400 hover:text-red-500" title="ลบรายการ"><i class="fa-solid fa-trash-can"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            renderCharts(filtered);
+        }
+
+        function viewJobDetail(id) {
+            const job = jobLogs.find(j => j.id === id);
+            if (!job) return;
+
+            document.getElementById('detailModalTitle').textContent = `รายละเอียดกิจกรรม: ${job.plotName}`;
+            document.getElementById('detailModalSub').textContent = `รหัสรายการ: ${job.id} | วันที่: ${job.date} | กิจกรรม: ${job.activityType}`;
+
+            const perRai = job.areaRai > 0 ? (job.grandTotal / job.areaRai) : 0;
+            const perTank = job.sprayTanks > 0 ? (job.grandTotal / job.sprayTanks) : 0;
+
+            let itemsHtml = job.items.map((i, idx) => `
+                <tr class="border-b border-slate-100 hover:bg-slate-50">
+                    <td class="p-2.5 text-center text-slate-400 font-medium">${idx + 1}</td>
+                    <td class="p-2.5 font-bold text-slate-800">${i.chemName}</td>
+                    <td class="p-2.5"><span class="px-2 py-0.5 rounded-full text-[10px] bg-slate-100 font-semibold text-slate-600">${i.category || '-'}</span></td>
+                    <td class="p-2.5 text-right font-semibold">${i.quantity.toLocaleString('th-TH')} ${i.unit}</td>
+                    <td class="p-2.5 text-right text-slate-500">${i.unitPrice.toFixed(2)} ฿</td>
+                    <td class="p-2.5 text-right font-bold text-slate-800">${i.totalCost.toLocaleString('th-TH', { minimumFractionDigits: 2 })} ฿</td>
+                </tr>
+            `).join('');
+
+            if (job.items.length === 0) {
+                itemsHtml = `<tr><td colspan="6" class="p-4 text-center text-slate-400">ไม่มีรายการสารเคมี/ปุ๋ย (มีเฉพาะค่าแรงงาน)</td></tr>`;
+            }
+
+            document.getElementById('detailModalContent').innerHTML = `
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-3.5 rounded-xl text-xs border border-slate-200">
+                    <div><span class="text-slate-400 block mb-0.5">พื้นที่ทำเกษตร:</span><span class="font-bold text-slate-700 text-sm">${job.areaRai} ไร่</span></div>
+                    <div><span class="text-slate-400 block mb-0.5">จำนวนถังพ่น:</span><span class="font-bold text-slate-700 text-sm">${job.sprayTanks} ถัง</span></div>
+                    <div><span class="text-slate-400 block mb-0.5">เฉลี่ย/ไร่:</span><span class="font-bold text-brand-600 text-sm">${perRai.toFixed(2)} ฿</span></div>
+                    <div><span class="text-slate-400 block mb-0.5">เฉลี่ย/ถัง:</span><span class="font-bold text-brand-600 text-sm">${perTank.toFixed(2)} ฿</span></div>
+                </div>
+                <div class="space-y-2">
+                    <h4 class="text-xs font-bold text-slate-700 flex items-center gap-1.5"><i class="fa-solid fa-flask text-agri-600"></i> รายการสารเคมีและปุ๋ยทั้งหมดที่ใช้</h4>
+                    <div class="overflow-x-auto border border-slate-200 rounded-xl">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-50 text-slate-500 border-b">
+                                <tr>
+                                    <th class="p-2.5 text-center w-10">#</th><th class="p-2.5">ชื่อรายการ</th><th class="p-2.5">หมวดหมู่</th><th class="p-2.5 text-right">ปริมาณ</th><th class="p-2.5 text-right">ราคา/หน่วย</th><th class="p-2.5 text-right">รวม</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">${itemsHtml}</tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="bg-slate-900 text-white rounded-xl p-4 text-xs space-y-2">
+                    <div class="flex justify-between border-b border-slate-800 pb-2"><span>ค่าสารเคมี/ปุ๋ย:</span><span class="font-bold text-agri-400">${job.chemTotal.toFixed(2)} บาท</span></div>
+                    <div class="flex justify-between border-b border-slate-800 pb-2"><span>ค่าแรงงาน:</span><span class="font-bold text-slate-200">${job.laborCost.toFixed(2)} บาท</span></div>
+                    <div class="flex justify-between pt-1"><span class="text-amber-400 font-bold">ต้นทุนรวมสุทธิ:</span><span class="text-amber-400 font-extrabold text-lg">${job.grandTotal.toFixed(2)} บาท</span></div>
+                </div>
+            `;
+            document.getElementById('jobDetailModal').classList.remove('hidden');
+        }
+
+        function closeJobDetailModal() { document.getElementById('jobDetailModal').classList.add('hidden'); }
+
+        function deleteJob(id) {
+            if (confirm('ยืนยันลบรายการบันทึกนี้หรือไม่?')) {
+                jobLogs = jobLogs.filter(j => j.id !== id);
+                saveJobs();
+                renderHistoryTable();
+                showToast('ลบรายการบันทึกแล้ว', 'success');
+            }
+        }
+
+        function renderCharts(jobsData) {
+            const categorySums = {};
+            jobsData.forEach(j => {
+                j.items.forEach(i => {
+                    const cat = i.category || 'อื่นๆ';
+                    categorySums[cat] = (categorySums[cat] || 0) + i.totalCost;
+                });
+                if (j.laborCost > 0) categorySums['แรงงาน'] = (categorySums['แรงงาน'] || 0) + j.laborCost;
+            });
+
+            if (categoryChartInstance) categoryChartInstance.destroy();
+            categoryChartInstance = new Chart(document.getElementById('categoryChart').getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(categorySums).length ? Object.keys(categorySums) : ['ไม่มีข้อมูล'],
+                    datasets: [{
+                        data: Object.values(categorySums).length ? Object.values(categorySums) : [1],
+                        backgroundColor: ['#0284c7', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#64748b', '#14b8a6']
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+            });
+
+            const plotSums = {};
+            jobsData.forEach(j => { plotSums[j.plotName] = (plotSums[j.plotName] || 0) + j.grandTotal; });
+
+            if (plotChartInstance) plotChartInstance.destroy();
+            plotChartInstance = new Chart(document.getElementById('plotChart').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(plotSums),
+                    datasets: [{ label: 'ต้นทุนรวม (บาท)', data: Object.values(plotSums), backgroundColor: '#10b981', borderRadius: 8 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+            });
+        }
+
+        // Export ข้อมูลทั้งหมดเป็น CSV
+        function exportToCSV() {
+            if (jobLogs.length === 0) { showToast('ไม่มีข้อมูลสำหรับส่งออก CSV', 'warning'); return; }
+            let csvContent = "\ufeffID,วันที่,แปลง,กิจกรรม,เนื้อที่(ไร่),จำนวนถังพ่น,สารเคมีที่ใช้,ต้นทุนสารเคมี,ค่าแรงงาน,ต้นทุนรวม,ต้นทุน/ไร่,หมายเหตุ\n";
+            jobLogs.forEach(j => {
+                const chemSummary = j.items.map(i => `${i.chemName} (${i.quantity} ${i.unit})`).join(' + ');
+                csvContent += `"${j.id}","${j.date}","${j.plotName}","${j.activityType}",${j.areaRai},${j.sprayTanks},"${chemSummary}",${j.chemTotal.toFixed(2)},${j.laborCost.toFixed(2)},${j.grandTotal.toFixed(2)},${(j.grandTotal/j.areaRai).toFixed(2)},"${j.notes||''}"\n`;
+            });
+            const link = document.createElement("a");
+            link.setAttribute("href", URL.createObjectURL(new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })));
+            link.setAttribute("download", `รายงานต้นทุนรวม_${currentUser ? currentUser.username : 'user'}_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast('ส่งออก CSV ทั้งหมดสำเร็จ', 'success');
+        }
+
+        // เพิ่มฟังก์ชัน: Export CSV เฉพาะแปลงที่เลือก
+        function exportSingleJobToCSV(id) {
+            const j = jobLogs.find(item => item.id === id);
+            if (!j) { showToast('ไม่พบข้อมูลแปลง', 'warning'); return; }
+
+            let csvContent = "\ufeffID,วันที่ล่าสุด,แปลง,กิจกรรม,เนื้อที่รวม(ไร่),จำนวนถังพ่นรวม,สารเคมี/ปุ๋ยที่ใช้,ปริมาณ,หน่วย,ราคา/หน่วย(บาท),ต้นทุนสารเคมี(บาท),ค่าแรงงานรวม(บาท),ต้นทุนรวมสุทธิ(บาท),ต้นทุนต่อไร่(บาท),หมายเหตุ\n";
+
+            if (j.items.length === 0) {
+                csvContent += `"${j.id}","${j.date}","${j.plotName}","${j.activityType}",${j.areaRai},${j.sprayTanks},"-",0,"-",0,0,${j.laborCost.toFixed(2)},${j.grandTotal.toFixed(2)},${(j.areaRai > 0 ? j.grandTotal/j.areaRai : 0).toFixed(2)},"${j.notes||''}"\n`;
+            } else {
+                j.items.forEach(i => {
+                    csvContent += `"${j.id}","${j.date}","${j.plotName}","${j.activityType}",${j.areaRai},${j.sprayTanks},"${i.chemName}",${i.quantity},"${i.unit}",${i.unitPrice.toFixed(2)},${i.totalCost.toFixed(2)},${j.laborCost.toFixed(2)},${j.grandTotal.toFixed(2)},${(j.areaRai > 0 ? j.grandTotal/j.areaRai : 0).toFixed(2)},"${j.notes||''}"\n`;
+                });
+            }
+
+            const link = document.createElement("a");
+            link.setAttribute("href", URL.createObjectURL(new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })));
+            link.setAttribute("download", `รายงาน_แปลง_${j.plotName}_${j.date}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast(`ส่งออกข้อมูลแปลง ${j.plotName} สำเร็จ`, 'success');
+        }
+
+        // Inventory Handlers
+        function renderInventoryTable() {
+            const tbody = document.getElementById('inventoryTableBody');
+            const searchKw = document.getElementById('inventorySearch').value.toLowerCase();
+            const catF = document.getElementById('inventoryCategoryFilter').value;
+
+            const filtered = chemicals.filter(c => (c.name.toLowerCase().includes(searchKw) || c.commonName.toLowerCase().includes(searchKw)) && (!catF || c.category === catF));
+
+            tbody.innerHTML = filtered.map(c => `
+                <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="p-3 text-slate-400 font-medium">${c.id}</td>
+                    <td class="p-3 font-bold text-slate-800">${c.name}</td>
+                    <td class="p-3 text-slate-500">${c.commonName || '-'}</td>
+                    <td class="p-3"><span class="px-2 py-0.5 rounded-full text-[10px] bg-slate-100 font-semibold text-slate-600">${c.category}</span></td>
+                    <td class="p-3 text-right">${c.packSize} ${c.unit}</td>
+                    <td class="p-3 text-right">${c.packPrice.toFixed(2)} ฿</td>
+                    <td class="p-3 text-right font-bold text-agri-600">${c.pricePerUnit.toFixed(4)} ฿/${c.unit}</td>
+                    <td class="p-3 text-center text-slate-600">${c.rate20L}</td>
+                    <td class="p-3 text-center text-slate-600">${c.rateRai}</td>
+                    <td class="p-3 text-center space-x-2">
+                        <button onclick="editChemModal(${c.id})" class="text-slate-400 hover:text-brand-600"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick="deleteChem(${c.id})" class="text-slate-400 hover:text-red-500"><i class="fa-solid fa-trash-can"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function deleteChem(id) {
+            if (confirm('ยืนยันลบรายการสารเคมีนี้ออกจากคลัง?')) {
+                chemicals = chemicals.filter(c => c.id !== id);
+                saveChemicals();
+                renderInventoryTable();
+                showToast('ลบรายการเรียบร้อย', 'success');
+            }
+        }
+
+        function openAddChemModal() {
+            document.getElementById('modalTitle').textContent = 'เพิ่มรายการสารเคมีใหม่';
+            document.getElementById('modalChemId').value = '';
+            document.getElementById('chemModalForm').reset();
+            document.getElementById('chemModal').classList.remove('hidden');
+        }
+
+        function editChemModal(id) {
+            const item = chemicals.find(c => c.id === id);
+            if (!item) return;
+            document.getElementById('modalTitle').textContent = 'แก้ไขรายการสารเคมี';
+            document.getElementById('modalChemId').value = item.id;
+            document.getElementById('modalChemName').value = item.name;
+            document.getElementById('modalChemCommon').value = item.commonName;
+            document.getElementById('modalChemCategory').value = item.category;
+            document.getElementById('modalChemPackSize').value = item.packSize;
+            document.getElementById('modalChemUnit').value = item.unit;
+            document.getElementById('modalChemPackPrice').value = item.packPrice;
+            document.getElementById('modalChemRate20L').value = item.rate20L;
+            document.getElementById('modalChemRateRai').value = item.rateRai;
+            document.getElementById('chemModal').classList.remove('hidden');
+        }
+
+        function closeChemModal() { document.getElementById('chemModal').classList.add('hidden'); }
+
+        function handleSaveChemModal(e) {
+            e.preventDefault();
+            const idVal = document.getElementById('modalChemId').value;
+            const name = document.getElementById('modalChemName').value.trim();
+            const commonName = document.getElementById('modalChemCommon').value.trim() || '-';
+            const category = document.getElementById('modalChemCategory').value;
+            const packSize = parseFloat(document.getElementById('modalChemPackSize').value);
+            const unit = document.getElementById('modalChemUnit').value.trim();
+            const packPrice = parseFloat(document.getElementById('modalChemPackPrice').value);
+            const rate20L = document.getElementById('modalChemRate20L').value.trim() || '-';
+            const rateRai = document.getElementById('modalChemRateRai').value.trim() || '-';
+            const pricePerUnit = packSize > 0 ? (packPrice / packSize) : 0;
+
+            if (idVal) {
+                const item = chemicals.find(c => c.id == idVal);
+                if (item) Object.assign(item, { name, commonName, category, packSize, unit, packPrice, pricePerUnit, rate20L, rateRai });
+            } else {
+                const newId = chemicals.length > 0 ? Math.max(...chemicals.map(c => c.id)) + 1 : 1;
+                chemicals.push({ id: newId, name, commonName, category, packSize, unit, packPrice, pricePerUnit, rate20L, rateRai, unit20L: unit, unitRai: unit });
+            }
+
+            saveChemicals();
+            closeChemModal();
+            renderInventoryTable();
+            showToast('บันทึกคลังสินค้าเรียบร้อย', 'success');
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            let bgColor = type === 'success' ? 'bg-agri-600' : (type === 'warning' ? 'bg-amber-600' : 'bg-slate-800');
+            toast.className = `${bgColor} text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 text-xs font-medium transform transition-all duration-300 translate-y-2 opacity-0 pointer-events-auto`;
+            toast.innerHTML = `<i class="fa-solid fa-circle-info text-base"></i> <span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.remove('translate-y-2', 'opacity-0'), 10);
+            setTimeout(() => { toast.classList.add('opacity-0', 'translate-y-2'); setTimeout(() => toast.remove(), 300); }, 3000);
+        }
+    </script>
+</body>
+</html>
